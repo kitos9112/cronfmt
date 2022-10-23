@@ -36,8 +36,6 @@ Currently, just the `root` and the `version` commands are implemented leveraging
 Golang version 1.19+ is required to build the project. Although, a `Makefile` is provided to ease the build process. This process has been tested in Linux and macOS only, however, binaries for Windows x64 are also released.
 
 ```bash
-
-```bash
 make test
 make binaries
 ```
