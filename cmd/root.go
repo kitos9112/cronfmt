@@ -32,40 +32,40 @@ var (
 		Long:  "Parses cron expressions and prints their extended space-separated format in stdout",
 		Example: `
 $ cronfmt "*/15" 0 1,15 "*" 1-5 "/usr/bin/find / -type f .terraform"
-+-----------------+------------------------------------+
-| CRON EXPRESSION | EXTENDED FORMAT                    |
-+-----------------+------------------------------------+
-| minute          | 0 15 30 45                         |
-| hour            | 0                                  |
-| day of month    | 1 15                               |
-| month           | 1 2 3 4 5 6 7 8 9 10 11 12         |
-| day of week     | 1 2 3 4 5                          |
-| command         | /usr/bin/find / -type f .terraform |
-+-----------------+------------------------------------+
++---------------+------------------------------------+
+| FIELD SECTION | EXTENDED FORMAT                    |
++---------------+------------------------------------+
+| minute        | 0 15 30 45                         |
+| hour          | 0                                  |
+| day of month  | 1 15                               |
+| month         | 1 2 3 4 5 6 7 8 9 10 11 12         |
+| day of week   | 1 2 3 4 5                          |
+| command       | /usr/bin/find / -type f .terraform |
++---------------+------------------------------------+
 
 $ cronfmt "*/18" "*/3" 5,15 "*" 1-5 "/usr/bin/call-home -m 'I am alive'"
-+-----------------+------------------------------------+
-| CRON EXPRESSION | EXTENDED FORMAT                    |
-+-----------------+------------------------------------+
-| minute          | 18 36 54                           |
-| hour            | 0 3 6 9 12 15 18 21                |
-| day of month    | 5 15                               |
-| month           | 1 2 3 4 5 6 7 8 9 10 11 12         |
-| day of week     | 1 2 3 4 5                          |
-| command         | /usr/bin/call-home -m 'I am alive' |
-+-----------------+------------------------------------+
++---------------+------------------------------------+
+| FIELD SECTION | EXTENDED FORMAT                    |
++---------------+------------------------------------+
+| minute        | 18 36 54                           |
+| hour          | 0 3 6 9 12 15 18 21                |
+| day of month  | 5 15                               |
+| month         | 1 2 3 4 5 6 7 8 9 10 11 12         |
+| day of week   | 1 2 3 4 5                          |
+| command       | /usr/bin/call-home -m 'I am alive' |
++---------------+------------------------------------+
 
 $ cronfmt "*/5" 1,2,3,4,5 1 "*/4" 1-5 "/bin/cat /tmp/myHiddenFile"
-+-----------------+-----------------------------------+
-| CRON EXPRESSION | EXTENDED FORMAT                   |
-+-----------------+-----------------------------------+
-| minute          | 0 5 10 15 20 25 30 35 40 45 50 55 |
-| hour            | 1 2 3 4 5                         |
-| day of month    | 1                                 |
-| month           | 4 8 12                            |
-| day of week     | 1 2 3 4 5                         |
-| command         | /bin/cat /tmp/myHiddenFile        |
-+-----------------+-----------------------------------+
++---------------+-----------------------------------+
+| FIELD SECTION | EXTENDED FORMAT                   |
++---------------+-----------------------------------+
+| minute        | 0 5 10 15 20 25 30 35 40 45 50 55 |
+| hour          | 1 2 3 4 5                         |
+| day of month  | 1                                 |
+| month         | 4 8 12                            |
+| day of week   | 1 2 3 4 5                         |
+| command       | /bin/cat /tmp/myHiddenFile        |
++---------------+-----------------------------------+
 `,
 		Args: cobra.MaximumNArgs(6),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -76,7 +76,7 @@ $ cronfmt "*/5" 1,2,3,4,5 1 "*/4" 1-5 "/bin/cat /tmp/myHiddenFile"
 			}
 			t := table.NewWriter()
 			t.SetOutputMirror(os.Stdout)
-			t.AppendHeader(table.Row{"Cron Expression", "Extended Format"})
+			t.AppendHeader(table.Row{"Field Section", "Extended Format"})
 			t.AppendSeparator()
 			t.AppendRows([]table.Row{
 				{"minute", cronfmt.Minute},
