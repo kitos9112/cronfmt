@@ -8,10 +8,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )
 
-type Cron struct {
+type Cronfmt struct {
 	Minute     string
 	Hour       string
 	DayOfMonth string
@@ -30,34 +31,63 @@ var (
 		Short: "Cron expression parser",
 		Long:  "Parses cron expressions and prints their extended space-separated format in stdout",
 		Example: `
-$ cronfmt */15 0 1,15 * 1-5 /usr/bin/find
-minute	0 15 30 45
-hour	  0
-day of month	1 15
-month	1 2 3 4 5 6 7 8 9 10 11 12
-day of week	12345
-command	/usr/bin/find
+$ cronfmt "*/15" 0 1,15 "*" 1-5 "/usr/bin/find / -type f .terraform"
++-----------------+------------------------------------+
+| CRON EXPRESSION | EXTENDED FORMAT                    |
++-----------------+------------------------------------+
+| minute          | 0 15 30 45                         |
+| hour            | 0                                  |
+| day of month    | 1 15                               |
+| month           | 1 2 3 4 5 6 7 8 9 10 11 12         |
+| day of week     | 1 2 3 4 5                          |
+| command         | /usr/bin/find / -type f .terraform |
++-----------------+------------------------------------+
 
-$ cronfmt */5 12 1 * 1-5 /usr/bin/find
-minute	0 5 10 15 20 25 30 35 40 45 50 55
-hour	  12
-day of month	1
-month	1 2 3 4 5 6 7 8 9 10 11 12
-day of week	1 2 3 4 5
-command	/usr/bin/find
+$ cronfmt "*/18" "*/3" 5,15 "*" 1-5 "/usr/bin/call-home -m 'I am alive'"
++-----------------+------------------------------------+
+| CRON EXPRESSION | EXTENDED FORMAT                    |
++-----------------+------------------------------------+
+| minute          | 18 36 54                           |
+| hour            | 0 3 6 9 12 15 18 21                |
+| day of month    | 5 15                               |
+| month           | 1 2 3 4 5 6 7 8 9 10 11 12         |
+| day of week     | 1 2 3 4 5                          |
+| command         | /usr/bin/call-home -m 'I am alive' |
++-----------------+------------------------------------+
 
-$ cronfmt */5 12 1 * 1-5 /usr/bin/find
-minute	0 5 10 15 20 25 30 35 40 45 50 55
-hour	  12
-day of month	1
-month	1 2 3 4 5 6 7 8 9 10 11 12
-day of week	12345
-command	/usr/bin/find
+$ cronfmt "*/5" 1,2,3,4,5 1 "*/4" 1-5 "/bin/cat /tmp/myHiddenFile"
++-----------------+-----------------------------------+
+| CRON EXPRESSION | EXTENDED FORMAT                   |
++-----------------+-----------------------------------+
+| minute          | 0 5 10 15 20 25 30 35 40 45 50 55 |
+| hour            | 1 2 3 4 5                         |
+| day of month    | 1                                 |
+| month           | 4 8 12                            |
+| day of week     | 1 2 3 4 5                         |
+| command         | /bin/cat /tmp/myHiddenFile        |
++-----------------+-----------------------------------+
 `,
+		Args: cobra.MaximumNArgs(6),
 		Run: func(cmd *cobra.Command, args []string) {
-			cron, err := validateAndExtractArgs(args)
-			fmt.Println(err)
-			fmt.Println(cron.Hour)
+			cronfmt, err := validateAndExtractArgs(args)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			t := table.NewWriter()
+			t.SetOutputMirror(os.Stdout)
+			t.AppendHeader(table.Row{"Cron Expression", "Extended Format"})
+			t.AppendSeparator()
+			t.AppendRows([]table.Row{
+				{"minute", cronfmt.Minute},
+				{"hour", cronfmt.Hour},
+				{"day of month", cronfmt.DayOfMonth},
+				{"month", cronfmt.Month},
+				{"day of week", cronfmt.DayOfWeek},
+				{"command", cronfmt.Command},
+			})
+			t.AppendSeparator()
+			t.Render()
 		},
 		// All flags are disabled and passed to root command as arguments
 		DisableFlagParsing:    true,
@@ -77,20 +107,19 @@ func Execute(version string) {
 }
 
 // validateAndExtractArgs ensures the cron format suitability of the arguments passed to the root command
-func validateAndExtractArgs(args []string) (*Cron, error) {
+func validateAndExtractArgs(args []string) (*Cronfmt, error) {
 	if len(args) != 6 {
 		return nil, errors.New("Invalid number of arguments\n")
 	}
 
 	// Initialise an empty cron struct
-	cronfmt := Cron{}
+	cronfmt := Cronfmt{}
 
 	// Iterate through each argument, validate it and extract its extended value
 	for index, arg := range args {
 		if arg == "" {
 			return nil, errors.New("Empty argument identified\n")
 		}
-
 		switch index {
 		case 0:
 			// validate minute positional argument
@@ -143,6 +172,7 @@ func validateAndExtractArgs(args []string) (*Cron, error) {
 			}
 			cronfmt.DayOfWeek = dayOfWeekExpanded
 		}
+
 		cronfmt.Command = args[5]
 	}
 
@@ -245,37 +275,4 @@ func expandCronExpr(expression string, minRange int, maxRange int, position stri
 		return "", errors.New("Invalid " + position + " expression or not yet recognisable\n")
 	}
 	return expandedExpr, nil
-}
-
-func isSubstring(str string, substr string) bool {
-	re := regexp.MustCompile(substr)
-	if re.MatchString(str) {
-		return true
-	}
-	return false
-}
-
-func getMatchesLength(str string, substr string) int {
-	re := regexp.MustCompile(substr)
-	return len(re.FindAllStringIndex(str, -1))
-}
-
-func createStringRange(minRange int, maxRange int, step int) string {
-	var sliceRange []int
-
-	if minRange == 0 && (maxRange+1)%step == 0 {
-		minRange = 1
-		sliceRange = append(sliceRange, 0)
-	} else {
-		minRange = 1
-	}
-
-	for i := minRange; i <= maxRange; i++ {
-		if i%step == 0 {
-			sliceRange = append(sliceRange, i)
-		}
-	}
-	sliceStr := strings.Fields(fmt.Sprint(sliceRange))
-	sliceStrSpaces := strings.Join(sliceStr, " ")
-	return strings.Trim(sliceStrSpaces, "[]")
 }
